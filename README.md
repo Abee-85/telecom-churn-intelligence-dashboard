@@ -246,8 +246,3 @@ Telecom Customer Churn Intelligence Dashboard
 **Technologies:**  
 Python · Machine Learning · ETL · Business Intelligence
 
----
-
-## License
-
-This project is developed for academic and educational purposes.
