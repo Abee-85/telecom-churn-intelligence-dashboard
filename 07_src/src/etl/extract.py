@@ -1,8 +1,4 @@
-"""
-ETL — Extract
-=============
-Loads the raw CSV, validates schema, and reports data quality.
-"""
+
 import logging
 import pandas as pd
 from pathlib import Path
