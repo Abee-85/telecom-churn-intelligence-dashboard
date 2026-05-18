@@ -1,9 +1,4 @@
-"""
-ETL — Load
-==========
-Creates a SQLite star-schema warehouse and loads cleaned data
-into FACT_CHURN + dimension tables.
-"""
+
 import sqlite3
 import logging
 import pandas as pd
