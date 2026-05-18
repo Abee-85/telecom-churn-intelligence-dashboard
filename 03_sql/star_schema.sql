@@ -1,9 +1,3 @@
--- ============================================================
--- star_schema.sql  |  Churn Analytics Data Warehouse
--- Star Schema: FACT_CHURN  +  4 Dimension Tables
--- ============================================================
-
--- ── Dimension Tables ──────────────────────────────────────────
 
 DROP TABLE IF EXISTS DIM_CUSTOMER;
 CREATE TABLE DIM_CUSTOMER (
