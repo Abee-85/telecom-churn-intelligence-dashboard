@@ -1,12 +1,4 @@
--- ============================================================
--- etl_queries.sql  |  ETL + Analytical Queries
--- ============================================================
-
--- ============================================================
--- SECTION 1: ETL LOAD QUERIES
--- ============================================================
-
--- Load dimension: DIM_CUSTOMER (from staging)
+-
 INSERT OR IGNORE INTO DIM_CUSTOMER (customer_id, gender, senior_citizen, partner, dependents)
 SELECT DISTINCT
     customerID, gender, SeniorCitizen, Partner, Dependents
