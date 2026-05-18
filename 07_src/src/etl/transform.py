@@ -1,8 +1,4 @@
-"""
-ETL — Transform
-===============
-Cleans raw data: fixes types, encodes target, engineers tenure cohorts.
-"""
+
 import logging
 import pandas as pd
 
