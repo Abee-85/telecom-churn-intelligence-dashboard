@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telecom Churn Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+  :root {
+    /* Light mode colors */
+    --bg:       #f4f6f9;
+    --surface:  #ffffff;
+    --surface2: #f0f3f8;
+    --surface3: #e8edf5;
+    --border:   #dde3ef;
+    --border2:  #c8d1e4;
+
+    /* Accent palette */
+    --teal:     #0d9488;
+    --amber:    #d97706;
+    --coral:    #e11d48;
+    --sage:     #16a34a;
+    --violet:   #7c3aed;
+    --gold:     #b45309;
+
+    --text:     #1a2035;
+    --text2:    #374151;
+    --muted:    #64748b;
+    --muted2:   #94a3b8;
+
+    /* Chart grid */
+    --grid:     rgba(200,209,228,0.7);
+  }
+
+  [data-theme="dark"] {
+    --bg:       #0f1419;
+    --surface:  #1a1f2e;
+    --surface2: #252b3c;
+    --surface3: #2d3548;
+    --border:   #363e54;
+    --border2:  #4a5568;
+
+    --text:     #f0f3f8;
+    --text2:    #e2e8f0;
+    --muted:    #94a3b8;
+    --muted2:   #64748b;
+
+    --grid:     rgba(148,163,184,0.15);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* Subtle dot-matrix bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(13,148,136,0.07) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  [data-theme="dark"] body::before {
+    background-image: radial-gradient(circle, rgba(13,148,136,0.15) 1px, transparent 1px);
+  }
+
+  /* Ambient glow blobs */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 10% 20%, rgba(13,148,136,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 90% 80%, rgba(217,119,6,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  [data-theme="dark"] body::after {
+    background:
+      radial-gradient(ellipse 60% 50% at 10% 20%, rgba(13,148,136,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 90% 80%, rgba(217,119,6,0.08) 0%, transparent 70%);
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* ===== HEADER ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 1px 12px rgba(0,0,0,0.07);
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .logo { display: flex; align-items: center; gap: 14px; }
+
+  .logo-mark {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--teal), #0f766e);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 14px rgba(13,148,136,0.35);
+  }
+
+  .logo-text { font-size: 14px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }
+  .logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--sage);
+    font-weight: 600;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--sage);
+    border-radius: 50%;
+    animation: blink 2.2s ease-in-out infinite;
+    box-shadow: 0 0 6px rgba(22,163,74,0.5);
+  }
+
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* Theme Toggle */
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 18px;
+  }
+
+  .theme-toggle:hover {
+    background: var(--surface3);
+    transform: scale(1.05);
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    display: flex;
+    gap: 0;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow-x: auto;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .tab {
+    padding: 15px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.25s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+  .tab-icon { font-size: 13px; }
+
+  /* ===== MAIN ===== */
+  main { padding: 36px 40px; }
+
+  .section { display: none; animation: slideUp 0.35s ease; }
+  .section.active { display: block; }
+
+  @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ===== SECTION HEADER ===== */
+  .section-header { margin-bottom: 30px; }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--teal);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .section-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .section-title em { font-style: normal; color: var(--teal); }
+
+  .section-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ===== KPI GRID ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s, background 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  [data-theme="dark"] .kpi {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .kpi:hover {
+    transform: translateY(-3px);
+    border-color: var(--kpi-c, var(--teal));
+    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  }
+
+  [data-theme="dark"] .kpi:hover {
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--kpi-c, var(--teal));
+    opacity: 0.9;
+  }
+
+  .kpi::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle, var(--kpi-c, var(--teal)) 0%, transparent 70%);
+    opacity: 0.08;
+    pointer-events: none;
+  }
+
+  .kpi-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .kpi-value em { font-style: normal; color: var(--kpi-c, var(--teal)); }
+
+  .kpi-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted2);
+    letter-spacing: 0.06em;
+  }
+
+  /* ===== CHART CARDS ===== */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: all 0.3s;
+  }
+
+  [data-theme="dark"] .chart-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  .chart-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+  }
+
+  [data-theme="dark"] .chart-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  }
+
+  .chart-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .chart-container {
+    position: relative;
+    height: 280px;
+  }
+
+  .chart-container-tall {
+    height: 360px;
+  }
+
+  /* ===== MODEL CARDS ===== */
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .model-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  [data-theme="dark"] .model-card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .model-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  [data-theme="dark"] .model-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  .model-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .metric-row:last-child { border-bottom: none; }
+
+  .metric-label {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .metric-value {
+    color: var(--text);
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ===== RETENTION STRATEGIES ===== */
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .strategy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--strategy-color, var(--teal));
+    border-radius: 12px;
+    padding: 26px;
+    transition: all 0.3s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  [data-theme="dark"] .strategy-card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  .strategy-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  }
+
+  [data-theme="dark"] .strategy-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  }
+
+  .strategy-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .strategy-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--strategy-color);
+    color: white;
+  }
+
+  .strategy-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .strategy-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text2);
+    margin-bottom: 16px;
+  }
+
+  .strategy-metrics {
+    display: flex;
+    gap: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .strategy-metric {
+    flex: 1;
+  }
+
+  .strategy-metric-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .strategy-metric-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--strategy-color);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ===== SEGMENT TABLE ===== */
+  .segment-table {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  [data-theme="dark"] .segment-table {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  .segment-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .segment-table th {
+    background: var(--surface2);
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .segment-table td {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 13px;
+  }
+
+  .segment-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .segment-table tr:hover {
+    background: var(--surface2);
+  }
+
+  .risk-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .risk-critical { background: rgba(225,29,72,0.15); color: var(--coral); }
+  .risk-high { background: rgba(217,119,6,0.15); color: var(--amber); }
+  .risk-medium { background: rgba(124,58,237,0.15); color: var(--violet); }
+  .risk-safe { background: rgba(22,163,74,0.15); color: var(--sage); }
+
+  /* ===== CONFUSION MATRIX ===== */
+  .confusion-matrix {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .cm-cell {
+    background: var(--surface);
+    padding: 20px;
+    text-align: center;
+    transition: background 0.3s;
+  }
+
+  .cm-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .cm-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .cm-desc {
+    font-size: 10px;
+    color: var(--muted2);
+    margin-top: 4px;
+  }
+
+  .cm-tn { background: rgba(22,163,74,0.1); }
+  .cm-fp { background: rgba(217,119,6,0.1); }
+  .cm-fn { background: rgba(225,29,72,0.1); }
+  .cm-tp { background: rgba(13,148,136,0.1); }
+
+  .cm-tn .cm-value { color: var(--sage); }
+  .cm-fp .cm-value { color: var(--amber); }
+  .cm-fn .cm-value { color: var(--coral); }
+  .cm-tp .cm-value { color: var(--teal); }
+
+  /* ===== ETL PIPELINE ===== */
+  .etl-pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding: 8px 0 20px;
+    margin-bottom: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+
+  .pipe-step {
+    flex: 1;
+    min-width: 140px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 16px;
+    text-align: center;
+    position: relative;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    cursor: default;
+  }
+
+  .pipe-step:hover {
+    border-color: var(--teal);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(13,148,136,0.15);
+  }
+
+  [data-theme="dark"] .pipe-step:hover {
+    box-shadow: 0 8px 24px rgba(13,148,136,0.2);
+  }
+
+  .pipe-step::after {
+    content: '→';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--teal);
+    font-size: 18px;
+    z-index: 2;
+    font-weight: 700;
+  }
+
+  .pipe-step:last-child::after { display: none; }
+
+  .pipe-gap { width: 40px; flex-shrink: 0; }
+
+  .pipe-icon { font-size: 28px; margin-bottom: 12px; }
+
+  .pipe-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+
+  .pipe-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* ===== DATA WAREHOUSE SCHEMA ===== */
+  .dw-schema {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .dim-table, .fact-table {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .dim-table:hover {
+    border-color: var(--amber);
+    box-shadow: 0 4px 20px rgba(217,119,6,0.1);
+  }
+
+  .fact-table:hover {
+    border-color: var(--teal);
+    box-shadow: 0 4px 20px rgba(13,148,136,0.1);
+  }
+
+  .etl-table-header {
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .fact-table .etl-table-header {
+    background: rgba(13,148,136,0.08);
+    color: var(--teal);
+    border-bottom: 1px solid rgba(13,148,136,0.18);
+  }
+
+  [data-theme="dark"] .fact-table .etl-table-header {
+    background: rgba(13,148,136,0.15);
+    border-bottom-color: rgba(13,148,136,0.3);
+  }
+
+  .dim-table .etl-table-header {
+    background: rgba(217,119,6,0.07);
+    color: var(--amber);
+    border-bottom: 1px solid rgba(217,119,6,0.14);
+  }
+
+  [data-theme="dark"] .dim-table .etl-table-header {
+    background: rgba(217,119,6,0.12);
+    border-bottom-color: rgba(217,119,6,0.25);
+  }
+
+  .etl-table-field {
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text2);
+    transition: background 0.2s;
+  }
+
+  .etl-table-field:hover { background: var(--surface3); }
+  .etl-table-field:last-child { border-bottom: none; }
+  .field-type  { color: var(--muted2); font-size: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .field-pk    { color: var(--sage);   font-size: 8px; font-weight: 700; letter-spacing: 0.06em; }
+  .field-fk    { color: var(--amber);  font-size: 8px; letter-spacing: 0.04em; }
+
+  /* ===== ETL VALIDATION GRID ===== */
+  .etl-validation-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .v-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+
+  .v-card:hover { border-color: var(--teal); transform: translateY(-2px); }
+
+  .v-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .v-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--teal);
+    letter-spacing: -0.02em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .v-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted2);
+    margin-top: 4px;
+  }
+
+  /* ===== RETENTION FUNNEL ===== */
+  .etl-funnel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 0;
+  }
+
+  .funnel-step {
+    background: linear-gradient(90deg, rgba(13,148,136,0.06), rgba(13,148,136,0.12));
+    border: 1px solid rgba(13,148,136,0.2);
+    border-radius: 10px;
+    padding: 14px 20px;
+    text-align: center;
+    transition: all 0.25s;
+    cursor: default;
+  }
+
+  .funnel-step:hover {
+    border-color: var(--teal);
+    background: linear-gradient(90deg, rgba(13,148,136,0.1), rgba(13,148,136,0.18));
+  }
+
+  .funnel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  .funnel-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--teal);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .funnel-arrow {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  /* ===== ETL QUALITY TABLE BADGES ===== */
+  .etl-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .etl-badge-green  { background: rgba(22,163,74,0.12);   color: var(--sage);   border: 1px solid rgba(22,163,74,0.25); }
+  .etl-badge-amber  { background: rgba(217,119,6,0.12);   color: var(--amber);  border: 1px solid rgba(217,119,6,0.25); }
+  .etl-badge-teal   { background: rgba(13,148,136,0.12);  color: var(--teal);   border: 1px solid rgba(13,148,136,0.25); }
+
+  /* ===== ETL DATA FLOW CONNECTOR ===== */
+  .data-flow-banner {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+
+  .flow-node {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text2);
+    white-space: nowrap;
+    transition: border-color 0.2s;
+  }
+
+  .flow-node:hover { border-color: var(--teal); }
+
+  .flow-node-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .flow-arrow {
+    color: var(--teal);
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Quality check table inside chart-card */
+  .etl-quality-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  .etl-quality-table th {
+    padding: 10px 16px;
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 2px solid var(--border);
+    text-align: left;
+    font-weight: 700;
+    background: var(--surface2);
+  }
+
+  .etl-quality-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  .etl-quality-table tr:last-child td { border-bottom: none; }
+  .etl-quality-table tr:hover td { background: var(--surface2); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    header { padding: 14px 20px; }
+    nav { padding: 0 20px; }
+    main { padding: 24px 20px; }
+    .tab { padding: 12px 18px; font-size: 9px; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .strategy-grid { grid-template-columns: 1fr; }
+    .model-grid { grid-template-columns: 1fr; }
+    .dw-schema { grid-template-columns: 1fr; }
+    .etl-validation-grid { grid-template-columns: 1fr 1fr; }
+    .etl-pipeline { flex-direction: column; }
+    .pipe-step::after { content: '↓'; right: 50%; transform: translateX(50%); top: auto; bottom: -22px; }
+    .pipe-gap { width: 100%; height: 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">📊</div>
+    <div>
+      <div class="logo-text">Telecom Churn Intelligence</div>
+      <div class="logo-sub">MCA Final Project Dashboard</div>
+    </div>
+  </div>
+  
+  <div class="header-meta">
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span>LIVE DATA</span>
+    </div>
+    <span>7,043 CUSTOMERS</span>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" onclick="switchTab('overview')">
+    <span class="tab-icon">📊</span> Overview
+  </button>
+  <button class="tab" onclick="switchTab('etl')">
+    <span class="tab-icon">⚙️</span> ETL & Warehouse
+  </button>
+  <button class="tab" onclick="switchTab('contracts')">
+    <span class="tab-icon">📋</span> Contracts
+  </button>
+  <button class="tab" onclick="switchTab('analysis')">
+    <span class="tab-icon">🔍</span> Analysis
+  </button>
+  <button class="tab" onclick="switchTab('segments')">
+    <span class="tab-icon">🎯</span> Segments
+  </button>
+  <button class="tab" onclick="switchTab('models')">
+    <span class="tab-icon">🤖</span> ML Models
+  </button>
+  <button class="tab" onclick="switchTab('retention')">
+    <span class="tab-icon">💡</span> Retention Strategy
+  </button>
+</nav>
+
+<main>
+
+<!-- OVERVIEW -->
+<section id="overview" class="section active">
+  <div class="section-header">
+    <div class="section-label">EXECUTIVE SUMMARY</div>
+    <h1 class="section-title">Customer Churn <em>Intelligence Dashboard</em></h1>
+    <p class="section-desc">Real-time analytics for 7,043 telecom subscribers with predictive churn modeling</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi" style="--kpi-c: var(--teal)">
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-value"><em>7,043</em></div>
+      <div class="kpi-meta">Active subscriber base</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--coral)">
+      <div class="kpi-label">Churned Customers</div>
+      <div class="kpi-value"><em>1,869</em></div>
+      <div class="kpi-meta">26.54% churn rate</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--sage)">
+      <div class="kpi-label">Retained Customers</div>
+      <div class="kpi-value"><em>5,174</em></div>
+      <div class="kpi-meta">73.46% retention rate</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--amber)">
+      <div class="kpi-label">Avg Monthly Revenue</div>
+      <div class="kpi-value">$<em>64.76</em></div>
+      <div class="kpi-meta">Per customer ARPU</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--violet)">
+      <div class="kpi-label">Model Accuracy</div>
+      <div class="kpi-value"><em>79.91</em>%</div>
+      <div class="kpi-meta">Logistic Regression</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--gold)">
+      <div class="kpi-label">AUC-ROC Score</div>
+      <div class="kpi-value"><em>84.03</em>%</div>
+      <div class="kpi-meta">Best model performance</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Churn by Tenure Cohort</div>
+      <div class="chart-container">
+        <canvas id="tenureChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Churn Distribution</div>
+      <div class="chart-container">
+        <canvas id="churnPie"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ETL & WAREHOUSE -->
+<section id="etl" class="section">
+  <div class="section-header">
+    <div class="section-label">DATA ENGINEERING</div>
+    <h1 class="section-title">ETL Pipeline & <em>Data Warehouse</em></h1>
+    <p class="section-desc">Extract · Transform · Load · Validate · Star schema architecture powering all dashboard metrics</p>
+  </div>
+
+  <!-- Data Flow Banner -->
+  <div class="data-flow-banner">
+    <div class="flow-node"><div class="flow-node-dot" style="background:var(--amber)"></div>IBM Telco CSV</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node"><div class="flow-node-dot" style="background:var(--teal)"></div>Python ETL</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node"><div class="flow-node-dot" style="background:var(--violet)"></div>Star Schema DW</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node"><div class="flow-node-dot" style="background:var(--sage)"></div>ML Feature Store</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node"><div class="flow-node-dot" style="background:var(--coral)"></div>Churn Dashboard</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node"><div class="flow-node-dot" style="background:var(--gold)"></div>Retention Actions</div>
+  </div>
+
+  <!-- ETL Validation KPIs -->
+  <div class="etl-validation-grid">
+    <div class="v-card">
+      <div class="v-label">Source Records</div>
+      <div class="v-val">7,043</div>
+      <div class="v-sub">Raw CSV rows ingested</div>
+    </div>
+    <div class="v-card">
+      <div class="v-label">Null Values Fixed</div>
+      <div class="v-val">11</div>
+      <div class="v-sub">TotalCharges imputed</div>
+    </div>
+    <div class="v-card">
+      <div class="v-label">Features Engineered</div>
+      <div class="v-val">24</div>
+      <div class="v-sub">From 21 raw attributes</div>
+    </div>
+    <div class="v-card">
+      <div class="v-label">Pipeline Status</div>
+      <div class="v-val" style="color:var(--sage)">✓ OK</div>
+      <div class="v-sub">All quality checks passed</div>
+    </div>
+  </div>
+
+  <!-- ETL Pipeline Steps -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-title">ETL Pipeline Architecture — End-to-End Data Flow</div>
+    <div class="etl-pipeline">
+      <div class="pipe-step">
+        <div class="pipe-icon">📥</div>
+        <div class="pipe-name">Extract</div>
+        <div class="pipe-desc">
+          Raw CSV ingestion<br>
+          7,043 records<br>
+          21 raw attributes<br>
+          IBM Telco source
+        </div>
+      </div>
+      <div class="pipe-gap"></div>
+      <div class="pipe-step">
+        <div class="pipe-icon">🧹</div>
+        <div class="pipe-name">Clean</div>
+        <div class="pipe-desc">
+          Handle TotalCharges<br>
+          Type coercion (str→float)<br>
+          Null imputation (11 rows)<br>
+          Duplicate detection
+        </div>
+      </div>
+      <div class="pipe-gap"></div>
+      <div class="pipe-step">
+        <div class="pipe-icon">🔧</div>
+        <div class="pipe-name">Transform</div>
+        <div class="pipe-desc">
+          Feature encoding (0/1)<br>
+          Tenure bucketing (4 cohorts)<br>
+          Charge normalization<br>
+          Risk score calc
+        </div>
+      </div>
+      <div class="pipe-gap"></div>
+      <div class="pipe-step">
+        <div class="pipe-icon">🏛️</div>
+        <div class="pipe-name">Load</div>
+        <div class="pipe-desc">
+          Star schema hydration<br>
+          4 dimension tables<br>
+          1 central fact table<br>
+          FK constraint checks
+        </div>
+      </div>
+      <div class="pipe-gap"></div>
+      <div class="pipe-step">
+        <div class="pipe-icon">✅</div>
+        <div class="pipe-name">Validate</div>
+        <div class="pipe-desc">
+          Row count match<br>
+          Type assertions<br>
+          Churn ratio check<br>
+          Schema integrity
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Warehouse Star Schema -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-title">Data Warehouse — Star Schema Architecture</div>
+    <p class="section-desc" style="margin-bottom:20px">Churn analytics optimized design · Central fact table joined by 4 dimension tables · All dashboard metrics sourced from here</p>
+    <div class="dw-schema">
+
+      <!-- Left dimensions -->
+      <div>
+        <div class="dim-table" style="margin-bottom:12px">
+          <div class="etl-table-header">DIM_CUSTOMER</div>
+          <div class="etl-table-field"><span>customer_id</span><span class="field-pk">PK</span></div>
+          <div class="etl-table-field"><span>gender</span><span class="field-type">VARCHAR</span></div>
+          <div class="etl-table-field"><span>senior_citizen</span><span class="field-type">BIT</span></div>
+          <div class="etl-table-field"><span>partner</span><span class="field-type">BIT</span></div>
+          <div class="etl-table-field"><span>dependents</span><span class="field-type">BIT</span></div>
+        </div>
+        <div class="dim-table">
+          <div class="etl-table-header">DIM_CONTRACT</div>
+          <div class="etl-table-field"><span>contract_id</span><span class="field-pk">PK</span></div>
+          <div class="etl-table-field"><span>contract_type</span><span class="field-type">VARCHAR</span></div>
+          <div class="etl-table-field"><span>payment_method</span><span class="field-type">VARCHAR</span></div>
+          <div class="etl-table-field"><span>paperless_billing</span><span class="field-type">BIT</span></div>
+        </div>
+      </div>
+
+      <!-- Central fact table -->
+      <div class="fact-table">
+        <div class="etl-table-header">⭐ FACT_CHURN (Central Fact Table)</div>
+        <div class="etl-table-field"><span>fact_id</span><span class="field-pk">PK · AUTO-INCREMENT</span></div>
+        <div class="etl-table-field"><span>customer_id</span><span class="field-fk">FK → DIM_CUSTOMER</span></div>
+        <div class="etl-table-field"><span>service_id</span><span class="field-fk">FK → DIM_SERVICE</span></div>
+        <div class="etl-table-field"><span>contract_id</span><span class="field-fk">FK → DIM_CONTRACT</span></div>
+        <div class="etl-table-field"><span>date_id</span><span class="field-fk">FK → DIM_DATE</span></div>
+        <div class="etl-table-field"><span>tenure_months</span><span class="field-type">INT</span></div>
+        <div class="etl-table-field"><span>monthly_charges</span><span class="field-type">DECIMAL(10,2)</span></div>
+        <div class="etl-table-field"><span>total_charges</span><span class="field-type">DECIMAL(12,2)</span></div>
+        <div class="etl-table-field"><span>churn_flag</span><span class="field-type">BIT · MEASURE</span></div>
+        <div class="etl-table-field"><span>churn_probability</span><span class="field-type">FLOAT · MEASURE</span></div>
+        <div class="etl-table-field"><span>risk_segment</span><span class="field-type">VARCHAR · MEASURE</span></div>
+      </div>
+
+      <!-- Right dimensions -->
+      <div>
+        <div class="dim-table" style="margin-bottom:12px">
+          <div class="etl-table-header">DIM_SERVICE</div>
+          <div class="etl-table-field"><span>service_id</span><span class="field-pk">PK</span></div>
+          <div class="etl-table-field"><span>internet_service</span><span class="field-type">VARCHAR</span></div>
+          <div class="etl-table-field"><span>phone_service</span><span class="field-type">BIT</span></div>
+          <div class="etl-table-field"><span>online_security</span><span class="field-type">BIT</span></div>
+          <div class="etl-table-field"><span>tech_support</span><span class="field-type">BIT</span></div>
+          <div class="etl-table-field"><span>streaming_tv</span><span class="field-type">BIT</span></div>
+        </div>
+        <div class="dim-table">
+          <div class="etl-table-header">DIM_DATE</div>
+          <div class="etl-table-field"><span>date_id</span><span class="field-pk">PK</span></div>
+          <div class="etl-table-field"><span>tenure_bucket</span><span class="field-type">VARCHAR</span></div>
+          <div class="etl-table-field"><span>cohort_year</span><span class="field-type">INT</span></div>
+          <div class="etl-table-field"><span>quarter</span><span class="field-type">INT</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Data Quality + Retention Funnel -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Data Quality Checks (Post-ETL)</div>
+      <table class="etl-quality-table">
+        <thead>
+          <tr><th>Check</th><th>Before ETL</th><th>After ETL</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Null Values</td><td>11 (TotalCharges)</td><td>0</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>TotalCharges Type</td><td>String / Object</td><td>Float64</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>Churn Encoding</td><td>Yes / No</td><td>Binary 0 / 1</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>Tenure Bucketed</td><td>Continuous INT</td><td>4 cohort groups</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>Duplicate Rows</td><td>0 detected</td><td>0</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>Row Count Preserved</td><td>7,043 raw</td><td>7,043 loaded</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>Service Flag Encoding</td><td>Yes/No/NaN</td><td>Binary (0 for no-internet)</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+          <tr><td>Churn Ratio Integrity</td><td>—</td><td>26.54% (1869/7043)</td><td><span class="etl-badge etl-badge-green">PASS</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Customer Retention Funnel</div>
+      <p class="section-desc" style="margin-bottom:16px">Lifecycle breakdown from total base to high-risk churn segment</p>
+      <div class="etl-funnel">
+        <div class="funnel-step" style="width:100%">
+          <div class="funnel-label">Total Customers Ingested</div>
+          <div class="funnel-val">7,043</div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-step" style="width:85%">
+          <div class="funnel-label">Low Risk — Long-Term Contract</div>
+          <div class="funnel-val">3,168</div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-step" style="width:65%">
+          <div class="funnel-label">Medium Risk — 1-yr / DSL</div>
+          <div class="funnel-val">2,006</div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-step" style="width:40%;background:linear-gradient(90deg,rgba(225,29,72,0.07),rgba(225,29,72,0.16));border-color:rgba(225,29,72,0.28)">
+          <div class="funnel-label" style="color:var(--coral)">High Risk — Month-to-Month</div>
+          <div class="funnel-val" style="color:var(--coral)">1,869</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warehouse → Dashboard Connection Map -->
+  <div class="chart-card" style="margin-top:4px">
+    <div class="chart-title">Warehouse → Dashboard Metric Connection Map</div>
+    <p class="section-desc" style="margin-bottom:16px">Every metric visible in this dashboard traces back to a specific warehouse field or join</p>
+    <table class="etl-quality-table">
+      <thead>
+        <tr><th>Dashboard Section</th><th>Warehouse Source</th><th>Key Fields Used</th><th>Aggregation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Overview KPIs</strong></td><td>FACT_CHURN</td><td>churn_flag, monthly_charges, tenure_months</td><td>COUNT, AVG, RATIO</td></tr>
+        <tr><td><strong>Tenure Cohort Chart</strong></td><td>FACT_CHURN ⋈ DIM_DATE</td><td>tenure_bucket, churn_flag</td><td>GROUP BY tenure_bucket</td></tr>
+        <tr><td><strong>Contract Analysis</strong></td><td>FACT_CHURN ⋈ DIM_CONTRACT</td><td>contract_type, churn_flag</td><td>GROUP BY contract_type</td></tr>
+        <tr><td><strong>Payment Methods</strong></td><td>FACT_CHURN ⋈ DIM_CONTRACT</td><td>payment_method, churn_flag</td><td>GROUP BY payment_method</td></tr>
+        <tr><td><strong>Internet & Services</strong></td><td>FACT_CHURN ⋈ DIM_SERVICE</td><td>internet_service, online_security, tech_support</td><td>GROUP BY service flags</td></tr>
+        <tr><td><strong>Demographics</strong></td><td>FACT_CHURN ⋈ DIM_CUSTOMER</td><td>senior_citizen, partner, dependents, gender</td><td>GROUP BY demographic dims</td></tr>
+        <tr><td><strong>ML Risk Segments</strong></td><td>FACT_CHURN (all dims)</td><td>churn_probability, risk_segment, all FK dims</td><td>MODEL SCORE + RANK</td></tr>
+        <tr><td><strong>Retention Strategy</strong></td><td>All tables (full join)</td><td>All measures + revenue impact calc</td><td>ROLLUP + PROJECTION</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<!-- CONTRACTS -->
+<section id="contracts" class="section">
+  <div class="section-header">
+    <div class="section-label">CONTRACT ANALYSIS</div>
+    <h1 class="section-title">Contract & Service <em>Performance</em></h1>
+    <p class="section-desc">Churn rates across contract types, service tiers, and internet connectivity</p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Churn by Contract Type</div>
+      <div class="chart-container">
+        <canvas id="contractChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Churn by Internet Service</div>
+      <div class="chart-container">
+        <canvas id="internetChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYSIS -->
+<section id="analysis" class="section">
+  <div class="section-header">
+    <div class="section-label">EXPLORATORY ANALYSIS</div>
+    <h1 class="section-title">Payment & Service <em>Analytics</em></h1>
+    <p class="section-desc">Deep dive into payment methods, add-on services, demographics, and revenue patterns</p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Churn by Payment Method</div>
+      <div class="chart-container">
+        <canvas id="paymentChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Impact of Add-On Services</div>
+      <div class="chart-container">
+        <canvas id="servicesChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Demographics Analysis</div>
+      <div class="chart-container">
+        <canvas id="demoChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Feature Importance</div>
+      <div class="chart-container">
+        <canvas id="importanceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card" style="grid-column: 1 / -1;">
+      <div class="chart-title">Monthly Charges Distribution</div>
+      <div class="chart-container">
+        <canvas id="chargesChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEGMENTS -->
+<section id="segments" class="section">
+  <div class="section-header">
+    <div class="section-label">CUSTOMER SEGMENTATION</div>
+    <h1 class="section-title">High-Risk <em>Segments</em></h1>
+    <p class="section-desc">Identifying critical churn segments for targeted retention campaigns</p>
+  </div>
+
+  <div class="segment-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Segment</th>
+          <th>Churn Rate</th>
+          <th>Customer Count</th>
+          <th>Risk Level</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>New Customers (0-12 months)</strong></td>
+          <td><strong>47.68%</strong></td>
+          <td>2,218</td>
+          <td><span class="risk-badge risk-critical">🔴 CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Electronic Check Users</strong></td>
+          <td><strong>45.29%</strong></td>
+          <td>2,365</td>
+          <td><span class="risk-badge risk-critical">🔴 CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Month-to-Month Contract</strong></td>
+          <td><strong>42.71%</strong></td>
+          <td>3,875</td>
+          <td><span class="risk-badge risk-critical">🔴 CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Fiber Optic Service</strong></td>
+          <td><strong>41.89%</strong></td>
+          <td>3,096</td>
+          <td><span class="risk-badge risk-critical">🔴 CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>Senior Citizens</strong></td>
+          <td><strong>41.68%</strong></td>
+          <td>1,142</td>
+          <td><span class="risk-badge risk-critical">🔴 CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td><strong>No Online Security</strong></td>
+          <td><strong>41.77%</strong></td>
+          <td>3,498</td>
+          <td><span class="risk-badge risk-high">🟡 HIGH</span></td>
+        </tr>
+        <tr>
+          <td><strong>One-Year Contract</strong></td>
+          <td><strong>11.27%</strong></td>
+          <td>1,473</td>
+          <td><span class="risk-badge risk-medium">🟣 MEDIUM</span></td>
+        </tr>
+        <tr>
+          <td><strong>Two-Year Contract</strong></td>
+          <td><strong>2.83%</strong></td>
+          <td>1,695</td>
+          <td><span class="risk-badge risk-safe">🟢 SAFE</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Tenure-Based Churn Decline</div>
+      <div class="chart-container">
+        <canvas id="tenureChart2"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Risk Profile Radar</div>
+      <div class="chart-container">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODELS -->
+<section id="models" class="section">
+  <div class="section-header">
+    <div class="section-label">PREDICTIVE MODELS</div>
+    <h1 class="section-title">Machine Learning <em>Performance</em></h1>
+    <p class="section-desc">Comparison of 4 classification models trained on 7,043 customer records</p>
+  </div>
+
+  <div class="model-grid">
+    <div class="model-card">
+      <div class="model-name">Logistic Regression</div>
+      <div class="metric-row">
+        <span class="metric-label">Accuracy</span>
+        <span class="metric-value">79.91%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">AUC-ROC</span>
+        <span class="metric-value">84.03%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Precision</span>
+        <span class="metric-value">64.26%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Recall</span>
+        <span class="metric-value">54.81%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">F1 Score</span>
+        <span class="metric-value">59.16%</span>
+      </div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-name">Gradient Boosting</div>
+      <div class="metric-row">
+        <span class="metric-label">Accuracy</span>
+        <span class="metric-value">80.13%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">AUC-ROC</span>
+        <span class="metric-value">84.49%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Precision</span>
+        <span class="metric-value">66.55%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Recall</span>
+        <span class="metric-value">50.53%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">F1 Score</span>
+        <span class="metric-value">57.45%</span>
+      </div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-name">Random Forest</div>
+      <div class="metric-row">
+        <span class="metric-label">Accuracy</span>
+        <span class="metric-value">79.21%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">AUC-ROC</span>
+        <span class="metric-value">82.25%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Precision</span>
+        <span class="metric-value">63.73%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Recall</span>
+        <span class="metric-value">50.27%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">F1 Score</span>
+        <span class="metric-value">56.20%</span>
+      </div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-name">Decision Tree</div>
+      <div class="metric-row">
+        <span class="metric-label">Accuracy</span>
+        <span class="metric-value">72.95%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">AUC-ROC</span>
+        <span class="metric-value">66.80%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Precision</span>
+        <span class="metric-value">50.66%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Recall</span>
+        <span class="metric-value">52.37%</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">F1 Score</span>
+        <span class="metric-value">51.50%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card" style="grid-column: 1 / -1;">
+      <div class="chart-title">Model Performance Comparison</div>
+      <div class="chart-container">
+        <canvas id="modelCompareChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Confusion Matrix (Logistic Regression)</div>
+      <div class="chart-container">
+        <div class="confusion-matrix">
+          <div class="cm-cell"></div>
+          <div class="cm-cell cm-label">Predicted: No Churn</div>
+          <div class="cm-cell cm-label">Predicted: Churn</div>
+          
+          <div class="cm-cell cm-label">Actual: No Churn</div>
+          <div class="cm-cell cm-tn">
+            <div class="cm-value">920</div>
+            <div class="cm-desc">True Negative</div>
+          </div>
+          <div class="cm-cell cm-fp">
+            <div class="cm-value">115</div>
+            <div class="cm-desc">False Positive</div>
+          </div>
+          
+          <div class="cm-cell cm-label">Actual: Churn</div>
+          <div class="cm-cell cm-fn">
+            <div class="cm-value">169</div>
+            <div class="cm-desc">False Negative</div>
+          </div>
+          <div class="cm-cell cm-tp">
+            <div class="cm-value">205</div>
+            <div class="cm-desc">True Positive</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top 10 Features</div>
+      <div class="chart-container">
+        <canvas id="importanceChart2"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RETENTION STRATEGY -->
+<section id="retention" class="section">
+  <div class="section-header">
+    <div class="section-label">ACTIONABLE INSIGHTS</div>
+    <h1 class="section-title">Retention <em>Strategy Recommendations</em></h1>
+    <p class="section-desc">Data-driven interventions to reduce churn and protect $504K+ annual revenue</p>
+  </div>
+
+  <div class="strategy-grid">
+    <div class="strategy-card" style="--strategy-color: var(--coral)">
+      <div class="strategy-header">
+        <div class="strategy-badge">🔴 CRITICAL PRIORITY</div>
+      </div>
+      <h3 class="strategy-title">Contract Conversion Campaign</h3>
+      <p class="strategy-desc">
+        Target 3,875 month-to-month customers with incentives to upgrade to one-year or two-year contracts. 
+        M2M contracts show 42.71% churn vs. 2.83% for two-year contracts—a 15× difference. Focus on customers 
+        with 3-6 months tenure who have stable payment history.
+      </p>
+      <div class="strategy-metrics">
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Target Segment</div>
+          <div class="strategy-metric-value">3,875</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Est. Impact</div>
+          <div class="strategy-metric-value">-18-22%</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Revenue Protected</div>
+          <div class="strategy-metric-value">$180K+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strategy-card" style="--strategy-color: var(--coral)">
+      <div class="strategy-header">
+        <div class="strategy-badge">🔴 CRITICAL PRIORITY</div>
+      </div>
+      <h3 class="strategy-title">Early Tenure Onboarding Program</h3>
+      <p class="strategy-desc">
+        Implement intensive support for first 12 months. New customers show 47.68% churn vs. 9.51% for 49-72 month 
+        customers. Deploy automated check-ins at Day 7, Day 30, and Month 6. Offer free tech support calls and 
+        proactive troubleshooting.
+      </p>
+      <div class="strategy-metrics">
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Target Segment</div>
+          <div class="strategy-metric-value">2,218</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Est. Impact</div>
+          <div class="strategy-metric-value">-12-15%</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Revenue Protected</div>
+          <div class="strategy-metric-value">$145K+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strategy-card" style="--strategy-color: var(--amber)">
+      <div class="strategy-header">
+        <div class="strategy-badge">🟡 HIGH PRIORITY</div>
+      </div>
+      <h3 class="strategy-title">Fiber Quality & Satisfaction Drive</h3>
+      <p class="strategy-desc">
+        Address 41.89% churn rate among 3,096 fiber optic customers. Investigate service quality issues, 
+        network outages, and speed complaints. Launch "Fiber Excellence" initiative with proactive speed tests, 
+        router upgrades, and competitive price matching.
+      </p>
+      <div class="strategy-metrics">
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Target Segment</div>
+          <div class="strategy-metric-value">3,096</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Est. Impact</div>
+          <div class="strategy-metric-value">-8-12%</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Revenue Protected</div>
+          <div class="strategy-metric-value">$95K+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strategy-card" style="--strategy-color: var(--amber)">
+      <div class="strategy-header">
+        <div class="strategy-badge">🟡 HIGH PRIORITY</div>
+      </div>
+      <h3 class="strategy-title">Auto-Pay + Security Bundle Promotion</h3>
+      <p class="strategy-desc">
+        Electronic check users churn at 45.29% vs. 15-17% for auto-pay methods. Customers without online security 
+        churn at 41.77% vs. 14.61% with it. Bundle auto-pay enrollment with free online security for 3 months. 
+        Target the 2,365 electronic check users.
+      </p>
+      <div class="strategy-metrics">
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Target Segment</div>
+          <div class="strategy-metric-value">2,365</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Est. Impact</div>
+          <div class="strategy-metric-value">-20%</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Revenue Protected</div>
+          <div class="strategy-metric-value">$62K+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strategy-card" style="--strategy-color: var(--teal)">
+      <div class="strategy-header">
+        <div class="strategy-badge">🔵 STRATEGIC</div>
+      </div>
+      <h3 class="strategy-title">Deploy Predictive Churn Scoring</h3>
+      <p class="strategy-desc">
+        Roll out the Logistic Regression model (84.03% AUC-ROC, 54.81% recall) into production CRM. 
+        Score all active customers monthly. Flag high-risk customers (top 20% probability) for proactive 
+        retention outreach. Expected to catch 700+ at-risk customers per month.
+      </p>
+      <div class="strategy-metrics">
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Model Used</div>
+          <div class="strategy-metric-value">Log Reg</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Monthly Alerts</div>
+          <div class="strategy-metric-value">700+</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">AUC-ROC</div>
+          <div class="strategy-metric-value">84.03%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="strategy-card" style="--strategy-color: var(--sage)">
+      <div class="strategy-header">
+        <div class="strategy-badge">🟢 ONGOING</div>
+      </div>
+      <h3 class="strategy-title">Senior Citizen Loyalty Program</h3>
+      <p class="strategy-desc">
+        Senior citizens (1,142 customers) show 41.68% churn rate. Create dedicated support hotline, 
+        simplified billing statements, in-person assistance at retail locations, and loyalty discounts for 
+        65+ customers with 12+ months tenure. Partner with senior community centers.
+      </p>
+      <div class="strategy-metrics">
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Target Segment</div>
+          <div class="strategy-metric-value">1,142</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Est. Impact</div>
+          <div class="strategy-metric-value">-10-14%</div>
+        </div>
+        <div class="strategy-metric">
+          <div class="strategy-metric-label">Revenue Protected</div>
+          <div class="strategy-metric-value">$22K+</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid" style="margin-top: 40px;">
+    <div class="kpi" style="--kpi-c: var(--coral)">
+      <div class="kpi-label">Projected Churn Reduction</div>
+      <div class="kpi-value"><em>-8% to -12%</em></div>
+      <div class="kpi-meta">If all strategies deployed</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--sage)">
+      <div class="kpi-label">Customers Saved (Annual)</div>
+      <div class="kpi-value"><em>563 – 845</em></div>
+      <div class="kpi-meta">Based on current base</div>
+    </div>
+    <div class="kpi" style="--kpi-c: var(--gold)">
+      <div class="kpi-label">Revenue Protected (Annual)</div>
+      <div class="kpi-value">$<em>504,000+</em></div>
+      <div class="kpi-meta">At $64.76 avg ARPU</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+</div>
+
+<script>
+const initialized = new Set();
+
+// Theme Toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const icon = document.getElementById('theme-icon');
+  const currentTheme = html.getAttribute('data-theme');
+  
+  if (currentTheme === 'dark') {
+    html.removeAttribute('data-theme');
+    icon.textContent = '🌙';
+    localStorage.setItem('theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    icon.textContent = '☀️';
+    localStorage.setItem('theme', 'dark');
+  }
+  
+  // Reinitialize charts with new theme colors
+  reinitializeCharts();
+}
+
+// Load saved theme
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('theme-icon').textContent = '☀️';
+  }
+});
+
+function reinitializeCharts() {
+  const activeSection = document.querySelector('.section.active').id;
+  initChartsForSection(activeSection);
+}
+
+function switchTab(sectionId) {
+  // Update tabs
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.closest('.tab').classList.add('active');
+
+  // Update sections
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(sectionId).classList.add('active');
+
+  // Initialize charts if needed
+  if (!initialized.has(sectionId)) {
+    initChartsForSection(sectionId);
+    initialized.add(sectionId);
+  }
+}
+
+function initChartsForSection(sectionId) {
+  if (sectionId === 'overview') initOverview();
+  if (sectionId === 'etl') { /* ETL section uses no charts — pure HTML/CSS */ }
+  if (sectionId === 'contracts') initContracts();
+  if (sectionId === 'analysis') initAnalysis();
+  if (sectionId === 'segments') initSegments();
+  if (sectionId === 'models') initModels();
+}
+
+function getChartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    teal: '#0d9488',
+    amber: '#d97706',
+    coral: '#e11d48',
+    sage: '#16a34a',
+    violet: '#7c3aed',
+    muted: isDark ? '#94a3b8' : '#64748b',
+    grid: isDark ? 'rgba(148,163,184,0.15)' : 'rgba(200,209,228,0.7)'
+  };
+}
+
+// ========== OVERVIEW ==========
+function initOverview() {
+  const { teal, amber, coral, sage, violet, muted, grid } = getChartColors();
+  
+  const tenureCanvas = document.getElementById('tenureChart');
+  if (tenureCanvas && Chart.getChart(tenureCanvas)) {
+    Chart.getChart(tenureCanvas).destroy();
+  }
+  
+  new Chart(document.getElementById('tenureChart'), {
+    type: 'bar',
+    data: {
+      labels: ['0-12 months', '13-24 months', '25-48 months', '49-72 months'],
+      datasets: [{
+        label: 'Churn Rate %',
+        data: [47.68, 28.71, 20.39, 9.51],
+        backgroundColor: [coral+'cc', amber+'cc', violet+'cc', sage+'cc'],
+        borderColor: [coral, amber, violet, sage],
+        borderWidth: 1,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 55, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  const pieCanvas = document.getElementById('churnPie');
+  if (pieCanvas && Chart.getChart(pieCanvas)) {
+    Chart.getChart(pieCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('churnPie'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Retained (73.46%)', 'Churned (26.54%)'],
+      datasets: [{
+        data: [5174, 1869],
+        backgroundColor: [sage+'cc', coral+'cc'],
+        borderColor: [sage, coral],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } }
+      }
+    }
+  });
+}
+
+// ========== CONTRACTS ==========
+function initContracts() {
+  const { teal, amber, coral, sage, muted, grid } = getChartColors();
+
+  const contractCanvas = document.getElementById('contractChart');
+  if (contractCanvas && Chart.getChart(contractCanvas)) {
+    Chart.getChart(contractCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('contractChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Month-to-Month', 'One Year', 'Two Year'],
+      datasets: [{
+        label: 'Churn Rate %',
+        data: [42.71, 11.27, 2.83],
+        backgroundColor: [coral+'cc', amber+'cc', sage+'cc'],
+        borderColor: [coral, amber, sage],
+        borderWidth: 1,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 50, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  const internetCanvas = document.getElementById('internetChart');
+  if (internetCanvas && Chart.getChart(internetCanvas)) {
+    Chart.getChart(internetCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('internetChart'), {
+    type: 'bar',
+    data: {
+      labels: ['No Internet', 'DSL', 'Fiber Optic'],
+      datasets: [{
+        label: 'Churn Rate %',
+        data: [7.40, 18.96, 41.89],
+        backgroundColor: [sage+'cc', amber+'cc', coral+'cc'],
+        borderColor: [sage, amber, coral],
+        borderWidth: 1,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 55, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ========== ANALYSIS ==========
+function initAnalysis() {
+  const { teal, amber, coral, sage, muted, grid } = getChartColors();
+
+  const paymentCanvas = document.getElementById('paymentChart');
+  if (paymentCanvas && Chart.getChart(paymentCanvas)) {
+    Chart.getChart(paymentCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('paymentChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Credit Card\n(Auto)', 'Bank Transfer\n(Auto)', 'Mailed\nCheck', 'Electronic\nCheck'],
+      datasets: [{
+        label: 'Churn Rate %',
+        data: [15.24, 16.71, 19.11, 45.29],
+        backgroundColor: [sage+'cc', teal+'cc', amber+'cc', coral+'cc'],
+        borderColor: [sage, teal, amber, coral],
+        borderWidth: 1,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 55, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  const servicesCanvas = document.getElementById('servicesChart');
+  if (servicesCanvas && Chart.getChart(servicesCanvas)) {
+    Chart.getChart(servicesCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('servicesChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Online Security', 'Tech Support', 'Online Backup', 'Device Protection'],
+      datasets: [
+        { label: 'Without Service', data: [41.77, 41.64, 39.93, 39.13], backgroundColor: coral+'99', borderColor: coral, borderWidth: 1, borderRadius: 5 },
+        { label: 'With Service', data: [14.61, 15.17, 21.53, 22.50], backgroundColor: sage+'99', borderColor: sage, borderWidth: 1, borderRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, padding: 12 } } },
+      scales: {
+        y: { beginAtZero: true, max: 50, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  const demoCanvas = document.getElementById('demoChart');
+  if (demoCanvas && Chart.getChart(demoCanvas)) {
+    Chart.getChart(demoCanvas).destroy();
+  }
+
+  const demoVals = [23.61, 41.68, 26.92, 26.16, 19.66, 32.96, 15.45, 31.28, 33.57, 16.33];
+  new Chart(document.getElementById('demoChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Non-Senior', 'Senior', 'Female', 'Male', 'Has Partner', 'No Partner', 'Has Deps', 'No Deps', 'Paperless', 'Paper Bill'],
+      datasets: [{
+        label: 'Churn %',
+        data: demoVals,
+        backgroundColor: demoVals.map(v => v > 35 ? coral+'cc' : v > 25 ? amber+'cc' : sage+'cc'),
+        borderColor: demoVals.map(v => v > 35 ? coral : v > 25 ? amber : sage),
+        borderWidth: 1,
+        borderRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 50, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false }, ticks: { font: { size: 8.5 }, maxRotation: 45 } }
+      }
+    }
+  });
+
+  const importanceCanvas = document.getElementById('importanceChart');
+  if (importanceCanvas && Chart.getChart(importanceCanvas)) {
+    Chart.getChart(importanceCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('importanceChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Total Charges', 'Monthly Charges', 'Tenure', 'Contract', 'Payment', 'Online Sec', 'Tech Support', 'Gender', 'Internet Svc', 'Online Backup'],
+      datasets: [{
+        label: 'Importance %',
+        data: [18.68, 17.92, 15.43, 7.96, 5.01, 4.96, 4.36, 2.79, 2.78, 2.71],
+        backgroundColor: teal+'88',
+        borderColor: teal,
+        borderWidth: 1,
+        borderRadius: 5
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  const chargesCanvas = document.getElementById('chargesChart');
+  if (chargesCanvas && Chart.getChart(chargesCanvas)) {
+    Chart.getChart(chargesCanvas).destroy();
+  }
+
+  const bins = ['$18–$30', '$30–$42', '$42–$54', '$54–$66', '$66–$78', '$78–$90', '$90–$102', '$102–$114', '$114–$119'];
+  new Chart(document.getElementById('chargesChart'), {
+    type: 'line',
+    data: {
+      labels: bins,
+      datasets: [
+        { label: 'Retained', data: [620, 550, 480, 600, 640, 720, 380, 120, 64], borderColor: sage, backgroundColor: sage+'28', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: sage },
+        { label: 'Churned', data: [80, 90, 110, 190, 340, 470, 340, 180, 69], borderColor: coral, backgroundColor: coral+'28', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: coral }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, padding: 16 } } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: grid }, title: { display: true, text: 'Customer Count', font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ========== SEGMENTS ==========
+function initSegments() {
+  const { teal, amber, coral, sage, muted, grid } = getChartColors();
+
+  const tenureCanvas = document.getElementById('tenureChart2');
+  if (tenureCanvas && Chart.getChart(tenureCanvas)) {
+    Chart.getChart(tenureCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('tenureChart2'), {
+    type: 'line',
+    data: {
+      labels: ['0–12 mo', '13–24 mo', '25–48 mo', '49–72 mo'],
+      datasets: [{
+        label: 'Churn Rate %',
+        data: [47.68, 28.71, 20.39, 9.51],
+        borderColor: coral,
+        backgroundColor: coral+'18',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 6,
+        pointBackgroundColor: coral
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 60, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  const radarCanvas = document.getElementById('radarChart');
+  if (radarCanvas && Chart.getChart(radarCanvas)) {
+    Chart.getChart(radarCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: ['M2M Contract', 'Electronic Check', 'New Customer', 'Fiber Optic', 'Senior Citizen', 'No Security', 'No Dependents', 'Paperless Bill'],
+      datasets: [
+        {
+          label: 'Churn Risk Score',
+          data: [85, 90, 95, 84, 83, 84, 63, 67],
+          borderColor: coral,
+          backgroundColor: coral+'20',
+          pointBackgroundColor: coral,
+          pointRadius: 5
+        },
+        {
+          label: 'Avg Baseline',
+          data: [53, 53, 53, 53, 53, 53, 53, 53],
+          borderColor: muted,
+          backgroundColor: 'transparent',
+          borderDash: [5, 5],
+          pointRadius: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 12 } } },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          grid: { color: grid },
+          pointLabels: { font: { size: 9.5 } },
+          ticks: { stepSize: 25, backdropColor: 'transparent' }
+        }
+      }
+    }
+  });
+}
+
+// ========== MODELS ==========
+function initModels() {
+  const { teal, amber, coral, sage, violet, muted, grid } = getChartColors();
+
+  const modelCanvas = document.getElementById('modelCompareChart');
+  if (modelCanvas && Chart.getChart(modelCanvas)) {
+    Chart.getChart(modelCanvas).destroy();
+  }
+
+  new Chart(document.getElementById('modelCompareChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Accuracy', 'AUC-ROC', 'Precision', 'Recall', 'F1 Score'],
+      datasets: [
+        { label: 'Logistic Regression', data: [79.91, 84.03, 64.26, 54.81, 59.16], backgroundColor: teal+'88', borderColor: teal, borderWidth: 1, borderRadius: 4 },
+        { label: 'Decision Tree', data: [72.95, 66.80, 50.66, 52.37, 51.50], backgroundColor: sage+'88', borderColor: sage, borderWidth: 1, borderRadius: 4 },
+        { label: 'Random Forest', data: [79.21, 82.25, 63.73, 50.27, 56.20], backgroundColor: amber+'88', borderColor: amber, borderWidth: 1, borderRadius: 4 },
+        { label: 'Gradient Boosting', data: [80.13, 84.49, 66.55, 50.53, 57.45], backgroundColor: violet+'88', borderColor: violet, borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 10 }, padding: 12 } } },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false }, ticks: { font: { size: 9.5 } } }
+      }
+    }
+  });
+
+  const importance2Canvas = document.getElementById('importanceChart2');
+  if (importance2Canvas && Chart.getChart(importance2Canvas)) {
+    Chart.getChart(importance2Canvas).destroy();
+  }
+
+  new Chart(document.getElementById('importanceChart2'), {
+    type: 'bar',
+    data: {
+      labels: ['Total Charges', 'Monthly Charges', 'Tenure', 'Contract Type', 'Payment Method', 'Online Security', 'Tech Support', 'Gender', 'Internet Service', 'Online Backup'],
+      datasets: [{
+        label: 'Feature Importance %',
+        data: [18.68, 17.92, 15.43, 7.96, 5.01, 4.96, 4.36, 2.79, 2.78, 2.71],
+        backgroundColor: [teal, teal+'ee', teal+'cc', amber+'cc', teal+'99', amber+'88', sage+'99', sage+'88', muted+'cc', muted+'99'],
+        borderWidth: 0,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 22, ticks: { callback: v => v+'%' }, grid: { color: grid } },
+        x: { grid: { display: false }, ticks: { font: { size: 8.5 }, maxRotation: 30 } }
+      }
+    }
+  });
+}
+
+window.addEventListener('load', () => {
+  initChartsForSection('overview');
+  initialized.add('overview');
+});
+</script>
+</body>
+</html>
