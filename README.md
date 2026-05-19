@@ -1,9 +1,5 @@
 # Telecom Customer Churn Intelligence Dashboard
 
-> MCA Final Year Project using Machine Learning, ETL, and Business Intelligence techniques for telecom customer churn prediction and retention analytics.
-
----
-
 ## Project Overview
 
 The Telecom Customer Churn Intelligence Dashboard is an AI-based analytics system designed to predict customer churn in the telecom industry using Machine Learning algorithms and Business Intelligence tools.
