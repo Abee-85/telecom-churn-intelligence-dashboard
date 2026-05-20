@@ -105,7 +105,7 @@ The dataset includes:
 ### Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/telecom-churn-intelligence-dashboard.git
+https://github.com/Abee-85/telecom-churn-intelligence-dashboard.git
 ```
 
 ### Move to Project Directory
