@@ -218,13 +218,4 @@ This project demonstrates the integration of Machine Learning, ETL, and Business
 
 ---
 
-## License
 
-MIT License
-
----
-
-## Author
-
-Your Name  
-MCA Final Year Project
