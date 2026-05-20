@@ -47,28 +47,6 @@ The following algorithms are used for churn prediction:
 
 ---
 
-## System Workflow
-
-```text
-Customer Data
-      ↓
-Data Preprocessing
-      ↓
-ETL Process
-      ↓
-Feature Engineering
-      ↓
-Machine Learning Models
-      ↓
-Churn Prediction
-      ↓
-Dashboard Visualization
-      ↓
-Decision Support
-```
-
----
-
 ## Dataset
 
 ### IBM Telco Customer Churn Dataset
@@ -160,25 +138,6 @@ jupyter notebook
 
 ---
 
-## Project Structure
-
-```text
-telecom-churn-intelligence-dashboard/
-│
-├── dataset/
-├── notebooks/
-├── models/
-├── dashboard/
-├── screenshots/
-├── reports/
-├── app.py
-├── requirements.txt
-├── README.md
-└── LICENSE
-```
-
----
-
 ## Model Evaluation Metrics
 
 The system evaluates model performance using:
@@ -231,12 +190,4 @@ The dashboard provides:
 This project demonstrates the integration of Machine Learning, ETL, and Business Intelligence techniques to develop an intelligent telecom churn prediction system. The solution helps telecom companies identify customers likely to churn and improve customer retention strategies through data-driven insights.
 
 ---
-
-## Author
-
-**Project Title:**  
-Telecom Customer Churn Intelligence Dashboard
-
-**Technologies:**  
-Python · Machine Learning · ETL · Business Intelligence
 
