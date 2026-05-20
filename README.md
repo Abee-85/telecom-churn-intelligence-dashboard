@@ -140,14 +140,11 @@ jupyter notebook
 
 ## Model Evaluation Metrics
 
-The system evaluates model performance using:
-
-- Accuracy
-- Precision
-- Recall
-- F1-Score
-- Confusion Matrix
-- ROC-AUC Score
+Model	Accuracy	AUC-ROC	Precision	Recall	F1
+Logistic Regression	80.62%	84.21%	65.83%	56.15% ↑	60.61%
+Gradient Boosting	80.27%	84.33% ↑	66.55% ↑	51.60%	58.13%
+Random Forest	78.64%	81.86%	61.97%	50.53%	55.67%
+Decision Tree	72.75%	65.37%	48.69%	49.73%	49.21%
 
 ---
 
