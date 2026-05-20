@@ -234,8 +234,6 @@ This project demonstrates the integration of Machine Learning, ETL, and Business
 
 ## Author
 
-### MCA Final Year Project
-
 **Project Title:**  
 Telecom Customer Churn Intelligence Dashboard
 
