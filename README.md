@@ -127,7 +127,7 @@ pip install -r requirements.txt
 ### Run Python Application
 
 ```bash
-python app.py
+python main.py
 ```
 
 ### OR Open Jupyter Notebook
